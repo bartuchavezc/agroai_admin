@@ -6,10 +6,71 @@ import type { AdminAccount, AdminMe, AdminUser, Overview, Timeseries } from "./t
 
 export const TOKEN_COOKIE = "agroai_admin_token";
 
+export class ApiNotConfiguredError extends Error {
+  constructor() {
+    super("AGROAI_API_URL (or NEXT_PUBLIC_API_URL) is not set");
+  }
+}
+
+const API_URL_VARS = ["AGROAI_API_URL", "NEXT_PUBLIC_API_URL"] as const;
+
+/** Read when the request runs. Next inlines a literal `process.env.NEXT_PUBLIC_X` at build time, server code
+ * included, so a value changed in Vercel after the last build would otherwise be ignored. */
+function runtimeEnv(name: string): string | undefined {
+  const env = process.env;
+  return env[name]?.trim() || undefined;
+}
+
+/** Which variable configures the API URL, and its raw value (for /diagnostico). */
+export function apiUrlSource(): { name: string; value: string } | null {
+  for (const name of API_URL_VARS) {
+    const value = runtimeEnv(name);
+    if (value) return { name, value };
+  }
+  return null;
+}
+
+/** The API base URL, with or without /api/v1 (web-monitoring's NEXT_PUBLIC_API_URL includes it). */
+export function apiBase(): string {
+  const source = apiUrlSource();
+  if (!source) throw new ApiNotConfiguredError();
+  return source.value.replace(/\/+$/, "").replace(/\/api\/v1$/, "");
+}
+
 export function apiUrl(path: string): string {
-  const base = process.env.AGROAI_API_URL;
-  if (!base) throw new Error("AGROAI_API_URL is not set");
-  return `${base.replace(/\/+$/, "")}/api/v1${path}`;
+  return `${apiBase()}/api/v1${path}`;
+}
+
+/** Every call to the API gives up after this long instead of hanging the page. */
+export const API_TIMEOUT_MS = 10_000;
+
+const FETCH_ERRORS: Record<string, string> = {
+  ENOTFOUND: "el dominio no existe (DNS)",
+  EAI_AGAIN: "no se pudo resolver el dominio (DNS)",
+  ECONNREFUSED: "conexión rechazada: la API no está escuchando en esa dirección/puerto",
+  ECONNRESET: "la conexión se cortó",
+  UND_ERR_CONNECT_TIMEOUT: "no respondió a tiempo (¿firewall o IP bloqueada?)",
+  ETIMEDOUT: "no respondió a tiempo (¿firewall o IP bloqueada?)",
+  ENETUNREACH: "red inalcanzable",
+  UND_ERR_SOCKET: "la conexión se cortó",
+  ERR_INVALID_URL: "la URL no es válida (¿le falta https://?)",
+  CERT_HAS_EXPIRED: "el certificado HTTPS venció",
+  ERR_TLS_CERT_ALTNAME_INVALID: "el certificado HTTPS no corresponde a ese dominio",
+  DEPTH_ZERO_SELF_SIGNED_CERT: "el certificado HTTPS no es válido (autofirmado)",
+  SELF_SIGNED_CERT_IN_CHAIN: "el certificado HTTPS no es válido (autofirmado)",
+  UNABLE_TO_VERIFY_LEAF_SIGNATURE: "el certificado HTTPS no es válido",
+};
+
+/** Why a fetch to the API threw, in words the admin can act on (undici hides the reason in `cause`). */
+export function describeFetchError(error: unknown): string {
+  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+    return `no respondió en ${API_TIMEOUT_MS / 1000} s`;
+  }
+  // fetch failed → cause (undici/Node error, possibly an AggregateError with one error per address tried).
+  const cause = (error as { cause?: { code?: string; message?: string; errors?: { code?: string }[] } } | null)?.cause;
+  const code = cause?.code ?? cause?.errors?.find((e) => e.code)?.code ?? (error as { code?: string } | null)?.code;
+  if (code && FETCH_ERRORS[code]) return `${FETCH_ERRORS[code]} [${code}]`;
+  return [code, cause?.message || (error instanceof Error ? error.message : String(error))].filter(Boolean).join(": ");
 }
 
 /** GET an /admin endpoint with the session token. No session, an expired token or a non-admin user → /login. */
@@ -19,6 +80,7 @@ async function adminGet<T>(path: string): Promise<T> {
   const response = await fetch(apiUrl(`/admin${path}`), {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
   if (response.status === 401 || response.status === 404) redirect("/login?expired=1");
   if (!response.ok) throw new Error(`API ${path} answered ${response.status}`);

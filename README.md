@@ -60,7 +60,7 @@ npm run lint
 npm run build
 ```
 
-Variables de entorno (ver `.env.example`): `AGROAI_API_URL`, la URL base de la API (sin `/api/v1`). En la API, agregar tu email a `PLATFORM_ADMIN_EMAILS`.
+Variables de entorno (ver `.env.example`): `AGROAI_API_URL`, la URL base de la API (con o sin `/api/v1`; también se acepta `NEXT_PUBLIC_API_URL`; las dos se leen en cada request, sin necesidad de rebuild). Si el login no conecta, abrí `/diagnostico`: muestra qué URL usa el servidor del panel y qué responde la API. En la API, agregar tu email a `PLATFORM_ADMIN_EMAILS`.
 
 ## Estado
 
