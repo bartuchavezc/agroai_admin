@@ -22,7 +22,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <p className="mt-4 text-center text-xs text-ink-3">
           Acceso solo para los emails configurados en <code>PLATFORM_ADMIN_EMAILS</code> de la API.
         </p>
-        {build && <p className="mt-1 text-center font-mono text-[11px] text-ink-3">build {build}</p>}
+        <p className="mt-1 text-center font-mono text-[11px] text-ink-3">
+          {build && <>build {build} · </>}
+          <a href="/diagnostico" className="underline hover:text-ink-2">diagnóstico</a>
+        </p>
       </div>
     </main>
   );

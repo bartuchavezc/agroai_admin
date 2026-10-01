@@ -12,11 +12,29 @@ export class ApiNotConfiguredError extends Error {
   }
 }
 
+const API_URL_VARS = ["AGROAI_API_URL", "NEXT_PUBLIC_API_URL"] as const;
+
+/** Read when the request runs. Next inlines a literal `process.env.NEXT_PUBLIC_X` at build time, server code
+ * included, so a value changed in Vercel after the last build would otherwise be ignored. */
+function runtimeEnv(name: string): string | undefined {
+  const env = process.env;
+  return env[name]?.trim() || undefined;
+}
+
+/** Which variable configures the API URL, and its raw value (for /diagnostico). */
+export function apiUrlSource(): { name: string; value: string } | null {
+  for (const name of API_URL_VARS) {
+    const value = runtimeEnv(name);
+    if (value) return { name, value };
+  }
+  return null;
+}
+
 /** The API base URL, with or without /api/v1 (web-monitoring's NEXT_PUBLIC_API_URL includes it). */
 export function apiBase(): string {
-  const base = process.env.AGROAI_API_URL || process.env.NEXT_PUBLIC_API_URL;
-  if (!base) throw new ApiNotConfiguredError();
-  return base.trim().replace(/\/+$/, "").replace(/\/api\/v1$/, "");
+  const source = apiUrlSource();
+  if (!source) throw new ApiNotConfiguredError();
+  return source.value.replace(/\/+$/, "").replace(/\/api\/v1$/, "");
 }
 
 export function apiUrl(path: string): string {
@@ -32,6 +50,8 @@ const FETCH_ERRORS: Record<string, string> = {
   ECONNREFUSED: "conexión rechazada: la API no está escuchando en esa dirección/puerto",
   ECONNRESET: "la conexión se cortó",
   UND_ERR_CONNECT_TIMEOUT: "no respondió a tiempo (¿firewall o IP bloqueada?)",
+  ETIMEDOUT: "no respondió a tiempo (¿firewall o IP bloqueada?)",
+  ENETUNREACH: "red inalcanzable",
   UND_ERR_SOCKET: "la conexión se cortó",
   ERR_INVALID_URL: "la URL no es válida (¿le falta https://?)",
   CERT_HAS_EXPIRED: "el certificado HTTPS venció",
@@ -46,10 +66,11 @@ export function describeFetchError(error: unknown): string {
   if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
     return `no respondió en ${API_TIMEOUT_MS / 1000} s`;
   }
-  const cause = (error as { cause?: { code?: string; message?: string } } | null)?.cause;
-  const code = cause?.code ?? (error as { code?: string } | null)?.code;
+  // fetch failed → cause (undici/Node error, possibly an AggregateError with one error per address tried).
+  const cause = (error as { cause?: { code?: string; message?: string; errors?: { code?: string }[] } } | null)?.cause;
+  const code = cause?.code ?? cause?.errors?.find((e) => e.code)?.code ?? (error as { code?: string } | null)?.code;
   if (code && FETCH_ERRORS[code]) return `${FETCH_ERRORS[code]} [${code}]`;
-  return [code, cause?.message ?? (error instanceof Error ? error.message : String(error))].filter(Boolean).join(": ");
+  return [code, cause?.message || (error instanceof Error ? error.message : String(error))].filter(Boolean).join(": ");
 }
 
 /** GET an /admin endpoint with the session token. No session, an expired token or a non-admin user → /login. */
