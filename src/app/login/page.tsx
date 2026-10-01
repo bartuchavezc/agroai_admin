@@ -4,6 +4,8 @@ import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { expired } = await searchParams;
+  const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
+  const build = commit && [commit, process.env.VERCEL_ENV].filter(Boolean).join(" · ");
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
@@ -20,6 +22,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <p className="mt-4 text-center text-xs text-ink-3">
           Acceso solo para los emails configurados en <code>PLATFORM_ADMIN_EMAILS</code> de la API.
         </p>
+        {build && <p className="mt-1 text-center font-mono text-[11px] text-ink-3">build {build}</p>}
       </div>
     </main>
   );
