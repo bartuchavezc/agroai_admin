@@ -1,26 +1,107 @@
 @import "tailwindcss";
 
+/* Tokens: surfaces and ink, plus the chart series (validated reference palette, slot 1 = blue). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --page: #f6f7f5;
+  --surface: #ffffff;
+  --surface-2: #f0efec;
+  --line: #e4e3df;
+  --ink: #16181d;
+  --ink-2: #52514e;
+  --ink-3: #85837d;
+  --brand: #0096d6;
+  --brand-ink: #0077ab;
+  --brand-soft: #e8f4fd;
+  --series-1: #2a78d6;
+  --series-1-soft: #cde2fb;
+  --grid: #e9e8e4;
+  --good: #1a7f37;
+  --good-soft: #dcfce7;
+  --warn: #b45309;
+  --warn-soft: #fff4e5;
+  --bad: #c62828;
+  --bad-soft: #fdecec;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #121211;
+    --surface: #1a1a19;
+    --surface-2: #242422;
+    --line: #2f2f2c;
+    --ink: #f4f4f2;
+    --ink-2: #c3c2b7;
+    --ink-3: #8f8e86;
+    --brand: #38b6ee;
+    --brand-ink: #7fd0f5;
+    --brand-soft: #0f2c3a;
+    --series-1: #3987e5;
+    --series-1-soft: #184f95;
+    --grid: #2b2b29;
+    --good: #4ade80;
+    --good-soft: #12301d;
+    --warn: #fbbf24;
+    --warn-soft: #33270c;
+    --bad: #f87171;
+    --bad-soft: #3a1717;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #121211;
+  --surface: #1a1a19;
+  --surface-2: #242422;
+  --line: #2f2f2c;
+  --ink: #f4f4f2;
+  --ink-2: #c3c2b7;
+  --ink-3: #8f8e86;
+  --brand: #38b6ee;
+  --brand-ink: #7fd0f5;
+  --brand-soft: #0f2c3a;
+  --series-1: #3987e5;
+  --series-1-soft: #184f95;
+  --grid: #2b2b29;
+  --good: #4ade80;
+  --good-soft: #12301d;
+  --warn: #fbbf24;
+  --warn-soft: #33270c;
+  --bad: #f87171;
+  --bad-soft: #3a1717;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-series-1: var(--series-1);
+  --color-series-1-soft: var(--series-1-soft);
+  --color-grid: var(--grid);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
