@@ -6,10 +6,21 @@ import type { AdminAccount, AdminMe, AdminUser, Overview, Timeseries } from "./t
 
 export const TOKEN_COOKIE = "agroai_admin_token";
 
+export class ApiNotConfiguredError extends Error {
+  constructor() {
+    super("AGROAI_API_URL (or NEXT_PUBLIC_API_URL) is not set");
+  }
+}
+
+/** The API base URL, with or without /api/v1 (web-monitoring's NEXT_PUBLIC_API_URL includes it). */
+export function apiBase(): string {
+  const base = process.env.AGROAI_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (!base) throw new ApiNotConfiguredError();
+  return base.trim().replace(/\/+$/, "").replace(/\/api\/v1$/, "");
+}
+
 export function apiUrl(path: string): string {
-  const base = process.env.AGROAI_API_URL;
-  if (!base) throw new Error("AGROAI_API_URL is not set");
-  return `${base.replace(/\/+$/, "")}/api/v1${path}`;
+  return `${apiBase()}/api/v1${path}`;
 }
 
 /** GET an /admin endpoint with the session token. No session, an expired token or a non-admin user → /login. */
