@@ -5,9 +5,11 @@ import { Pill } from "@/components/ui";
 import { fmtAgo, fmtDate, fmtInt, fmtMinutes, label } from "@/lib/format";
 import type { AdminUser } from "@/lib/types";
 
+import { ToggleActiveButton } from "./ToggleActiveButton";
+
 const time = (iso: string | null) => (iso ? new Date(iso).getTime() : 0);
 
-export function UsersTable({ users, now }: { users: AdminUser[]; now: number }) {
+export function UsersTable({ users, now, meId }: { users: AdminUser[]; now: number; meId: string }) {
   const columns: Column<AdminUser>[] = [
     {
       key: "user",
@@ -28,13 +30,14 @@ export function UsersTable({ users, now }: { users: AdminUser[]; now: number }) 
       sort: (u) => (u.is_active ? 2 : 0) + (u.is_enrolled ? 1 : 0),
       cell: (u) => (
         <div className="flex flex-wrap gap-1">
-          {!u.is_active && <Pill tone="bad">Baja</Pill>}
+          {!u.is_active && <Pill tone="bad">Deshabilitado</Pill>}
           {u.is_active && !u.is_enrolled && <Pill tone="warn">Onboarding pendiente</Pill>}
           {u.is_active && u.is_enrolled && <Pill tone="good">Activo</Pill>}
           {!u.byok_configured && <Pill>Sin key</Pill>}
         </div>
       ),
     },
+    { key: "actions", header: "", cell: (u) => <ToggleActiveButton user={u} isSelf={u.id === meId} /> },
     { key: "profile", header: "Perfil", sort: (u) => u.profile ?? "", cell: (u) => <span className="text-ink-2">{u.profile ?? "—"}</span> },
     { key: "last", header: "Última actividad", sort: (u) => time(u.last_active_at), cell: (u) => fmtAgo(u.last_active_at, now) },
     { key: "sessions", header: "Sesiones", align: "right", sort: (u) => u.sessions, cell: (u) => fmtInt(u.sessions) },
