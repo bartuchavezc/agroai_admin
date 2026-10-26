@@ -87,6 +87,29 @@ async function adminGet<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+export type AdminWriteResult = { ok: true } | { ok: false; status: number; detail: string };
+
+/** POST/PATCH an /admin endpoint with the session token (Server Actions only). No session → /login. */
+export async function adminWrite(method: "POST" | "PATCH", path: string, body: unknown): Promise<AdminWriteResult> {
+  const token = (await cookies()).get(TOKEN_COOKIE)?.value;
+  if (!token) redirect("/login");
+  const response = await fetch(apiUrl(`/admin${path}`), {
+    method,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+  });
+  if (response.status === 401) redirect("/login?expired=1");
+  if (response.ok) return { ok: true };
+  const payload = (await response.json().catch(() => null)) as { detail?: unknown } | null;
+  // FastAPI: `detail` is a string, or a list of validation errors with `msg`.
+  const detail = Array.isArray(payload?.detail)
+    ? payload.detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join(" · ")
+    : typeof payload?.detail === "string" ? payload.detail : "";
+  return { ok: false, status: response.status, detail };
+}
+
 export const getMe = () => adminGet<AdminMe>("/me");
 export const getOverview = (days: number) => adminGet<Overview>(`/overview?days=${days}`);
 export const getTimeseries = (days: number) => adminGet<Timeseries>(`/timeseries?days=${days}`);

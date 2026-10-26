@@ -1,6 +1,6 @@
 # AgroAI Admin
 
-Panel de administración (solo lectura, por ahora) de la plataforma **AgroAI**: una plataforma agéntica de agricultura a pequeña escala (huerta familiar).
+Panel de administración de la plataforma **AgroAI**: una plataforma agéntica de agricultura a pequeña escala (huerta familiar).
 
 Este repo es el **tercer proyecto** de la familia:
 
@@ -31,6 +31,10 @@ Dar al admin de la plataforma una web limpia, simple y pulida para entender de u
 
 **Usuarios** (`/usuarios`) y **Cuentas** (`/cuentas`): tablas ordenables y con búsqueda, con rol, estado, última actividad y contadores de uso (sesiones, tiempo en chat, mensajes, fotos, eventos, campos, superficie, ciclos).
 
+**Control de usuarios** (en `/usuarios`):
+- **Nuevo owner**: crea una cuenta nueva con ese usuario como owner (email, contraseña inicial, nombre, nombre de la cuenta y país). Funciona aunque el registro público (`ALLOW_PUBLIC_SIGNUP`) esté apagado. Los técnicos y staff los suma el owner desde la app.
+- **Deshabilitar / Habilitar** cualquier usuario: deshabilitado no puede ingresar y sus sesiones abiertas se cierran al instante; sus datos quedan. Al habilitarlo vuelve a ingresar con su contraseña. No podés deshabilitarte a vos mismo.
+
 Definiciones (las calcula la API):
 - *Activo*: mandó un mensaje al agente, subió una foto o cargó un evento.
 - *Sesión*: mensajes de un usuario separados por menos de 30 min; dura del primer mensaje a la última respuesta del agente.
@@ -44,7 +48,7 @@ Definiciones (las calcula la API):
 
 ## Datos y acceso
 
-El panel consume `GET /api/v1/admin/{me,overview,timeseries,users,accounts}` de `agroai_crops-agent-api`: solo agregados y metadata, nunca el texto de los chats, las fotos ni las keys.
+El panel consume `GET /api/v1/admin/{me,overview,timeseries,users,accounts}` de `agroai_crops-agent-api`: solo agregados y metadata, nunca el texto de los chats, las fotos ni las keys. Para el control de usuarios usa `POST /api/v1/admin/users` y `PATCH /api/v1/admin/users/{id}` (Server Actions).
 
 - Acceso: solo los emails listados en `PLATFORM_ADMIN_EMAILS` de la API (cualquier otro usuario recibe 404). Se ingresa con el usuario y contraseña normales de AgroAI.
 - El login es una Server Action: el token queda en una cookie `httpOnly` y todas las llamadas a la API salen del servidor de Next, así que el navegador nunca ve el token ni habla con la API (no hace falta agregar el panel a `CORS_ORIGINS`).
@@ -64,4 +68,4 @@ Variables de entorno (ver `.env.example`): `AGROAI_API_URL`, la URL base de la A
 
 ## Estado
 
-Primera versión: login de admin, resumen de KPIs, usuarios y cuentas. Pendiente: latencias del agente (la API todavía no las guarda).
+Login de admin, resumen de KPIs, usuarios y cuentas, alta de owners y habilitación de usuarios. Pendiente: latencias del agente (la API todavía no las guarda).
